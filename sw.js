@@ -1,4 +1,4 @@
-const CACHE_NAME = 'resit-ai-cache-v2.7';
+const CACHE_NAME = 'resit-ai-cache-v2.8';
 
 // 1. Paksa Service Worker baru terus hidup serta-merta tanpa tunggu app ditutup
 self.addEventListener('install', (event) => {
