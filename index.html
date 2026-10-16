@@ -82,4 +82,267 @@
     .upload-zone svg {
       width: 44px;
       height: 44px;
-      fill: #19
+      fill: #1976d2;
+      margin-bottom: 6px;
+    }
+    .upload-zone p {
+      font-size: 15px;
+      font-weight: 600;
+      color: #1976d2;
+    }
+    .upload-zone span {
+      font-size: 12px;
+      color: #78909c;
+    }
+    /* Galeri Grid Resit yang Diambil */
+    .receipts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .receipt-thumb-card {
+      position: relative;
+      background: #fafafa;
+      border: 1px solid #cfd8dc;
+      border-radius: 8px;
+      padding: 6px;
+      text-align: center;
+    }
+    .receipt-thumb-card img {
+      width: 100%;
+      height: 140px;
+      object-fit: cover;
+      border-radius: 6px;
+      border: 1px solid #eee;
+    }
+    .delete-thumb-btn {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      background: #d32f2f;
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      font-size: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+    .thumb-rotate-btn {
+      margin-top: 4px;
+      width: 100%;
+      font-size: 10px;
+      padding: 4px 0;
+      background: #eceff1;
+      border: 1px solid #cfd8dc;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 600;
+      color: #455a64;
+    }
+    .btn-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .btn {
+      width: 100%;
+      padding: 13px;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.2s;
+    }
+    .btn-primary { background: #2e7d32; color: #fff; }
+    .btn-primary:active { background: #1b5e20; }
+    .btn-add-more { background: #0277bd; color: #fff; }
+    .btn-add-more:active { background: #01579b; }
+    .btn-clear { background: #78909c; color: #fff; }
+    .btn-clear:active { background: #546e7a; }
+    .btn-download-pdf { background: #1565c0; color: #fff; margin-top: 10px; padding: 10px; font-size: 13px; }
+    .btn-download-pdf:active { background: #0d47a1; }
+    .status-msg {
+      margin-top: 14px;
+      font-size: 13px;
+      text-align: center;
+      font-weight: 600;
+      color: #0277bd;
+      line-height: 1.4;
+    }
+    .loader {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #0277bd;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    /* Kad Ringkasan Grand Total */
+    .grand-total-card {
+      margin-top: 18px;
+      background: #e8f5e9;
+      border: 2px solid #81c784;
+      border-radius: 12px;
+      padding: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: bold;
+    }
+    .grand-total-label {
+      font-size: 14px;
+      color: #1b5e20;
+    }
+    .grand-total-amount {
+      font-size: 20px;
+      color: #2e7d32;
+    }
+    /* Kad Keputusan Setiap Resit */
+    .results-container {
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .receipt-result-card {
+      background: #fafafa;
+      border: 1px solid #e0e0e0;
+      border-radius: 10px;
+      padding: 14px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+    }
+    .receipt-result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #e0e0e0;
+      padding-bottom: 6px;
+      margin-bottom: 10px;
+    }
+    .receipt-result-title {
+      font-size: 14px;
+      color: #1565c0;
+      font-weight: bold;
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 5px;
+      font-size: 12px;
+    }
+    .info-label { color: #607d8b; }
+    .info-val { font-weight: 600; color: #212121; text-align: right; }
+    .items-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 11px;
+    }
+    .items-table th, .items-table td {
+      padding: 5px 4px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+    .items-table th { background: #f0f0f0; color: #455a64; }
+    .items-table td.num { text-align: right; }
+    .total-highlight {
+      margin-top: 10px;
+      padding-top: 6px;
+      border-top: 2px dashed #b0bec5;
+      font-size: 14px;
+      font-weight: 700;
+      color: #d32f2f;
+      display: flex;
+      justify-content: space-between;
+    }
+    .app-footer {
+      text-align: center;
+      margin-top: 24px;
+      padding-top: 14px;
+      border-top: 1px solid #eceff1;
+      font-size: 11px;
+      color: #78909c;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-container">
+  <div class="header">
+    <h1>
+      📄 ResitAI Scanner
+      <span class="version-badge">v2.8</span>
+    </h1>
+    <div class="creator-tag">
+      Dibangunkan oleh: <strong>Musa Bin Sarudin</strong>
+    </div>
+    <p>Imbas pelbagai resit, ekstrak data AI & kira jumlah besar</p>
+  </div>
+
+  <!-- Input Kamera (Sokong Satu/Banyak Gambar) -->
+  <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;">
+  <input type="file" id="galleryInput" accept="image/*" multiple style="display: none;">
+
+  <!-- Zon Tangkap Gambar -->
+  <div class="upload-zone" onclick="document.getElementById('cameraInput').click()">
+    <svg viewBox="0 0 24 24">
+      <path d="M4 4h3l2-2h6l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm8 3a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6z"/>
+    </svg>
+    <p>Ambil Gambar Resit</p>
+    <span>Buka kamera telefon (atau <u onclick="event.stopPropagation(); document.getElementById('galleryInput').click();">pilih dari galeri</u>)</span>
+  </div>
+
+  <!-- Grid Gambar Resit yang Dikumpul -->
+  <div class="receipts-grid" id="receiptsGrid"></div>
+
+  <!-- Kumpulan Butang Tindakan -->
+  <div class="btn-group" id="actionsGroup" style="display: none;">
+    <button class="btn btn-add-more" onclick="document.getElementById('cameraInput').click()">
+      ➕ Tambah Resit Lain
+    </button>
+    <button class="btn btn-primary" id="processAllBtn" onclick="processAllReceipts()">
+      ⚡ Ekstrak Semua Resit Sekaligus (<span id="receiptCount">0</span>)
+    </button>
+    <button class="btn btn-clear" onclick="clearAllReceipts()">
+      🗑️ Kosongkan Senarai
+    </button>
+  </div>
+
+  <div id="status" class="status-msg"></div>
+
+  <!-- Kad Grand Total Semua Resit -->
+  <div class="grand-total-card" id="grandTotalCard" style="display: none;">
+    <div class="grand-total-label">
+      RINGKASAN KESELURUHAN:<br>
+      <small style="color: #4caf50; font-weight: normal;" id="grandTotalCount">0 Resit Berjaya</small>
+    </div>
+    <div class="grand-total-amount" id="grandTotalAmount">RM 0.00</div>
+  </div>
+
+  <!-- Senarai Kad Hasil Setiap Resit -->
+  <div class="results-container" id="resultsContainer"></div>
+
+  <div class="app-footer">
+    ResitAI Scanner • Versi 2.8<br>
+    Hak Cipta &copy; 2026 <strong>Musa Bin Sarudin</strong>. Hak Cipta Terpelihara.
+  </div>
+</div>
+
+<script src="app.js?v=2.8"></script>
+</body>
+</html>
