@@ -1,4 +1,4 @@
-const CACHE_NAME = 'resit-ai-cache-v1.1';
+const CACHE_NAME = 'resit-ai-cache-v2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
