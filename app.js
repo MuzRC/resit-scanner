@@ -1,3 +1,12 @@
+// Pengesan automatik kemas kini versi baharu
+let refreshing = false;
+navigator.serviceWorker.addEventListener('controllerchange', () => {
+  if (!refreshing) {
+    refreshing = true;
+    window.location.reload();
+  }
+});
+
 // 1. Pendaftaran Service Worker untuk PWA
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
