@@ -1,4 +1,4 @@
-// 1. Mekanisma Kemas Kini Automatik Versi PWA
+// 1. Mekanisme Pembaruan Otomatis Versi PWA
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js').then((reg) => {
@@ -15,7 +15,7 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// Pautan Backend Cloud Run
+// Tautan Backend Cloud Run
 const BACKEND_URL = "https://resit-api-399824306056.asia-southeast1.run.app/extract";
 
 const cameraInput = document.getElementById('cameraInput');
@@ -28,12 +28,12 @@ const rawJson = document.getElementById('rawJson');
 
 let capturedImageBase64 = null;
 
-// Tangkap imej dari kamera atau galeri telefon
+// Tangkap gambar dari kamera atau galeri
 cameraInput.addEventListener('change', async function(e) {
   const file = e.target.files[0];
   if (!file) return;
 
-  statusDiv.innerHTML = '<span class="loader"></span>Memotong meja & membuang bayang resit...';
+  statusDiv.innerHTML = '<span class="loader"></span>Mencukur sisa meja & membersihkan tepi resit...';
   previewContainer.style.display = 'none';
   actions.style.display = 'none';
   resultCard.style.display = 'none';
@@ -41,12 +41,12 @@ cameraInput.addEventListener('change', async function(e) {
   const reader = new FileReader();
   reader.onload = async function(event) {
     try {
-      const enhancedImage = await autoCropAndEnhance(event.target.result);
-      capturedImageBase64 = enhancedImage;
+      const croppedImage = await autoCropAndEnhance(event.target.result);
+      capturedImageBase64 = croppedImage;
       preview.src = capturedImageBase64;
       previewContainer.style.display = 'block';
       actions.style.display = 'flex';
-      statusDiv.innerHTML = '✨ Resit berjaya dibersihkan & sedia diproses!';
+      statusDiv.innerHTML = '✨ Resit bersih sempurna & sedia diproses!';
     } catch (err) {
       console.error("Ralat pemprosesan imej:", err);
       capturedImageBase64 = event.target.result;
@@ -59,12 +59,12 @@ cameraInput.addEventListener('change', async function(e) {
   reader.readAsDataURL(file);
 });
 
-// Enjin Auto-Crop Bersih & Pembuang Bayang Pintar (Adaptive Illumination)
+// Enjin Auto-Crop Presisi Tinggi, Edge-Trim & Pemutih Pinggiran
 function autoCropAndEnhance(imageSrc) {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
-      // 1. Analisa Pengecaman Sempadan Kertas pada Skala Kecil
+      // 1. Skala analisa cepat untuk deteksi kertas resi
       const aW = 320;
       const aH = Math.round((img.height * aW) / img.width);
 
@@ -86,7 +86,7 @@ function autoCropAndEnhance(imageSrc) {
         sumTotal += lum;
       }
 
-      // Ambang Otsu untuk kenal pasti perbezaan kertas vs meja
+      // Ambang Otsu untuk memisahkan meja dan kertas
       const totalPixels = aW * aH;
       let sumB = 0, wB = 0, maxVar = 0, bestThresh = 120;
       for (let t = 0; t < 256; t++) {
@@ -104,9 +104,9 @@ function autoCropAndEnhance(imageSrc) {
         }
       }
 
-      const thresh = Math.max(75, Math.min(bestThresh, 200));
+      const thresh = Math.max(80, Math.min(bestThresh, 205));
 
-      // 2. Unjuran Garisan (Projection Profile) untuk Potong Meja Sahaja
+      // 2. Unjuran Garisan Lebih Ketat (Abaikan pantulan meja)
       const rowCounts = new Int32Array(aH);
       const colCounts = new Int32Array(aW);
 
@@ -120,8 +120,8 @@ function autoCropAndEnhance(imageSrc) {
         }
       }
 
-      const rowMinReq = aW * 0.10;
-      const colMinReq = aH * 0.10;
+      const rowMinReq = aW * 0.15;
+      const colMinReq = aH * 0.20;
 
       let minY = 0;
       while (minY < aH && rowCounts[minY] < rowMinReq) minY++;
@@ -140,21 +140,17 @@ function autoCropAndEnhance(imageSrc) {
 
       let cropX = 0, cropY = 0, cropW = img.width, cropH = img.height;
 
-      // Jika resit dikesan, potong tepat sempadan resit
       if (detectedW > aW * 0.15 && detectedH > aH * 0.15) {
         const scaleX = img.width / aW;
         const scaleY = img.height / aH;
-        // Lebihan penampan 1% supaya tepi teks resit selamat
-        const padX = detectedW * 0.01;
-        const padY = detectedH * 0.01;
-
-        cropX = Math.max(0, (minX - padX) * scaleX);
-        cropY = Math.max(0, (minY - padY) * scaleY);
-        cropW = Math.min(img.width - cropX, (detectedW + padX * 2) * scaleX);
-        cropH = Math.min(img.height - cropY, (detectedH + padY * 2) * scaleY);
+        // Tanpa padding luar agar tidak memakan meja
+        cropX = Math.max(0, minX * scaleX);
+        cropY = Math.max(0, minY * scaleY);
+        cropW = Math.min(img.width - cropX, detectedW * scaleX);
+        cropH = Math.min(img.height - cropY, detectedH * scaleY);
       }
 
-      // 3. Kanvas Output Resolusi Tinggi
+      // 3. Kanvas Sementara Resolusi Tinggi
       const maxDim = 1500;
       let outW = Math.round(cropW);
       let outH = Math.round(cropH);
@@ -169,43 +165,100 @@ function autoCropAndEnhance(imageSrc) {
         }
       }
 
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = outW;
+      tempCanvas.height = outH;
+      const tCtx = tempCanvas.getContext('2d');
+      tCtx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, outW, outH);
+
+      const tImgData = tCtx.getImageData(0, 0, outW, outH);
+      const tData = tImgData.data;
+
+      // 4. SMART EDGE-TRIMMER: Cukur habis kolom & baris tepi yang masih berisi meja
+      const lumMap = new Uint8Array(outW * outH);
+      for (let i = 0; i < outW * outH; i++) {
+        const off = i * 4;
+        lumMap[i] = Math.round(0.299 * tData[off] + 0.587 * tData[off + 1] + 0.114 * tData[off + 2]);
+      }
+
+      let trimLeft = 0;
+      while (trimLeft < Math.floor(outW * 0.20)) {
+        let darkPixels = 0;
+        for (let y = 0; y < outH; y++) {
+          if (lumMap[y * outW + trimLeft] < thresh) darkPixels++;
+        }
+        if (darkPixels / outH > 0.30) trimLeft++;
+        else break;
+      }
+
+      let trimRight = outW - 1;
+      while (trimRight > Math.floor(outW * 0.80)) {
+        let darkPixels = 0;
+        for (let y = 0; y < outH; y++) {
+          if (lumMap[y * outW + trimRight] < thresh) darkPixels++;
+        }
+        if (darkPixels / outH > 0.30) trimRight--;
+        else break;
+      }
+
+      let trimTop = 0;
+      while (trimTop < Math.floor(outH * 0.20)) {
+        let darkPixels = 0;
+        for (let x = 0; x < outW; x++) {
+          if (lumMap[trimTop * outW + x] < thresh) darkPixels++;
+        }
+        if (darkPixels / outW > 0.30) trimTop++;
+        else break;
+      }
+
+      let trimBot = outH - 1;
+      while (trimBot > Math.floor(outH * 0.80)) {
+        let darkPixels = 0;
+        for (let x = 0; x < outW; x++) {
+          if (lumMap[trimBot * outW + x] < thresh) darkPixels++;
+        }
+        if (darkPixels / outW > 0.30) trimBot--;
+        else break;
+      }
+
+      // 5. Kanvas Final Setelah Dicukur Rapi
+      const finalW = Math.max(10, trimRight - trimLeft + 1);
+      const finalH = Math.max(10, trimBot - trimTop + 1);
+
       const outCanvas = document.createElement('canvas');
-      outCanvas.width = outW;
-      outCanvas.height = outH;
+      outCanvas.width = finalW;
+      outCanvas.height = finalH;
       const outCtx = outCanvas.getContext('2d');
-      outCtx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, outW, outH);
+      outCtx.drawImage(tempCanvas, trimLeft, trimTop, finalW, finalH, 0, 0, finalW, finalH);
 
-      // 4. PENAPIS PEMBUANG BAYANG PINTAR (ADAPTIVE ILLUMINATION DIVISION)
-      // Meratakan warna kertas dari atas ke bawah tanpa tompok kelabu
-      const imgData = outCtx.getImageData(0, 0, outW, outH);
-      const d = imgData.data;
+      // 6. Normalisasi Pencahayaan & Border Whitening (Pinggiran 2.5% diputihkan)
+      const finalImgData = outCtx.getImageData(0, 0, finalW, finalH);
+      const d = finalImgData.data;
 
-      // Bahagikan kepada grid blok 32x32 untuk mengesan kecerahan kertas setempat
       const blockSize = 32;
-      const gridW = Math.ceil(outW / blockSize);
-      const gridH = Math.ceil(outH / blockSize);
+      const gridW = Math.ceil(finalW / blockSize);
+      const gridH = Math.ceil(finalH / blockSize);
       const bgGrid = new Uint8Array(gridW * gridH);
 
       for (let gy = 0; gy < gridH; gy++) {
         for (let gx = 0; gx < gridW; gx++) {
           const startX = gx * blockSize;
-          const endX = Math.min(outW, (gx + 1) * blockSize);
+          const endX = Math.min(finalW, (gx + 1) * blockSize);
           const startY = gy * blockSize;
-          const endY = Math.min(outH, (gy + 1) * blockSize);
+          const endY = Math.min(finalH, (gy + 1) * blockSize);
 
           let maxVal = 0;
           for (let py = startY; py < endY; py += 2) {
             for (let px = startX; px < endX; px += 2) {
-              const idx = (py * outW + px) * 4;
+              const idx = (py * finalW + px) * 4;
               const val = Math.round(0.299 * d[idx] + 0.587 * d[idx + 1] + 0.114 * d[idx + 2]);
               if (val > maxVal) maxVal = val;
             }
           }
-          bgGrid[gy * gridW + gx] = Math.max(70, maxVal);
+          bgGrid[gy * gridW + gx] = Math.max(75, maxVal);
         }
       }
 
-      // Haluskan peta bayang latar belakang (Smooth Background Map)
       const bgCanvas = document.createElement('canvas');
       bgCanvas.width = gridW;
       bgCanvas.height = gridH;
@@ -221,46 +274,59 @@ function autoCropAndEnhance(imageSrc) {
       bgCtx.putImageData(bgImg, 0, 0);
 
       const smoothCanvas = document.createElement('canvas');
-      smoothCanvas.width = outW;
-      smoothCanvas.height = outH;
+      smoothCanvas.width = finalW;
+      smoothCanvas.height = finalH;
       const sCtx = smoothCanvas.getContext('2d');
       sCtx.imageSmoothingEnabled = true;
-      sCtx.drawImage(bgCanvas, 0, 0, outW, outH);
-      const smoothData = sCtx.getImageData(0, 0, outW, outH).data;
+      sCtx.drawImage(bgCanvas, 0, 0, finalW, finalH);
+      const smoothData = sCtx.getImageData(0, 0, finalW, finalH).data;
 
-      // Terapkan pembahagian pencahayaan (Ratakan kertas putih & pekatkan tulisan)
-      for (let i = 0; i < outW * outH; i++) {
-        const idx = i * 4;
-        const curLum = 0.299 * d[idx] + 0.587 * d[idx + 1] + 0.114 * d[idx + 2];
-        const bgVal = Math.max(1, smoothData[idx]);
+      // Batas margin pinggir untuk memastikan tidak ada sisa meja yang lolos
+      const marginX = Math.floor(finalW * 0.025);
+      const marginY = Math.floor(finalH * 0.025);
 
-        // Nisbah piksel kepada kecerahan kertas setempat
-        let normalized = (curLum / bgVal) * 255;
+      for (let y = 0; y < finalH; y++) {
+        for (let x = 0; x < finalW; x++) {
+          const idx = (y * finalW + x) * 4;
+          const curLum = 0.299 * d[idx] + 0.587 * d[idx + 1] + 0.114 * d[idx + 2];
 
-        // Lengkung kontras: putihkan latar kertas dan pekatkan dakwat teks
-        let finalVal;
-        if (normalized >= 195) {
-          finalVal = 255; // Kertas resit diputihkan rata sepenuhnya
-        } else if (normalized <= 125) {
-          finalVal = normalized * 0.70; // Tulisan resit dihitamkan & ditajamkan
-        } else {
-          finalVal = 87.5 + (normalized - 125) * (167.5 / 70);
+          // Jika ada sisa sudut meja di pinggiran terluar, langsung jadikan putih murni
+          if (x < marginX || x > finalW - marginX || y < marginY || y > finalH - marginY) {
+            if (curLum < thresh) {
+              d[idx] = 255;
+              d[idx + 1] = 255;
+              d[idx + 2] = 255;
+              continue;
+            }
+          }
+
+          const bgVal = Math.max(1, smoothData[idx]);
+          let normalized = (curLum / bgVal) * 255;
+
+          let finalVal;
+          if (normalized >= 190) {
+            finalVal = 255; // Latar kertas putih bersih
+          } else if (normalized <= 125) {
+            finalVal = normalized * 0.65; // Teks tulisan pekat & tajam
+          } else {
+            finalVal = 81.25 + (normalized - 125) * (173.75 / 65);
+          }
+
+          finalVal = Math.min(255, Math.max(0, finalVal));
+          d[idx] = finalVal;
+          d[idx + 1] = finalVal;
+          d[idx + 2] = finalVal;
         }
-
-        finalVal = Math.min(255, Math.max(0, finalVal));
-        d[idx] = finalVal;
-        d[idx + 1] = finalVal;
-        d[idx + 2] = finalVal;
       }
 
-      outCtx.putImageData(imgData, 0, 0);
+      outCtx.putImageData(finalImgData, 0, 0);
       resolve(outCanvas.toDataURL('image/jpeg', 0.92));
     };
     img.src = imageSrc;
   });
 }
 
-// Jana PDF Berasaskan Resit Yang Bersih & Terang
+// Menghasilkan Dokumen PDF Bersih
 function createReceiptPdfBlob() {
   return new Promise((resolve) => {
     const { jsPDF } = window.jspdf;
@@ -292,7 +358,7 @@ function createReceiptPdfBlob() {
   });
 }
 
-// Simpan fail PDF sahaja
+// Simpan fail PDF
 async function downloadPdfDirectly() {
   if (!capturedImageBase64) return;
   statusDiv.innerHTML = '<span class="loader"></span>Menjana fail PDF...';
@@ -304,7 +370,7 @@ async function downloadPdfDirectly() {
   statusDiv.innerHTML = '✅ PDF resit bersih berjaya disimpan!';
 }
 
-// Hantar ke Gemini AI di Cloud Run
+// Kirim ke Gemini Cloud Run AI
 async function processReceipt() {
   statusDiv.innerHTML = '<span class="loader"></span>Menjana dokumen PDF kemas...';
   const pdfBlob = await createReceiptPdfBlob();
@@ -333,7 +399,7 @@ async function processReceipt() {
   }
 }
 
-// Paparkan data hasil ekstrak
+// Tampilkan data hasil ekstrak
 function renderResult(data) {
   document.getElementById('resKedai').innerText = data.nama_kedai || 'Tidak dinyatakan';
   document.getElementById('resTarikh').innerText = data.tarikh || '-';
