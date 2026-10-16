@@ -1,4 +1,4 @@
-// 1. Mekanisme Pembaruan Otomatis Versi PWA
+// 1. Mekanisma Kemas Kini Automatik Versi PWA
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js').then((reg) => {
@@ -15,7 +15,7 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// Tautan Backend Cloud Run
+// Pautan Backend Cloud Run
 const BACKEND_URL = "https://resit-api-399824306056.asia-southeast1.run.app/extract";
 
 const cameraInput = document.getElementById('cameraInput');
@@ -27,13 +27,15 @@ const resultCard = document.getElementById('resultCard');
 const rawJson = document.getElementById('rawJson');
 
 let capturedImageBase64 = null;
+let currentPdfBlob = null;
+let currentExtractedData = null;
 
 // Tangkap gambar dari kamera atau galeri
 cameraInput.addEventListener('change', async function(e) {
   const file = e.target.files[0];
   if (!file) return;
 
-  statusDiv.innerHTML = '<span class="loader"></span>Mencukur sisa meja & membersihkan tepi resit...';
+  statusDiv.innerHTML = '<span class="loader"></span>Mencukur meja & membersihkan tepi resit...';
   previewContainer.style.display = 'none';
   actions.style.display = 'none';
   resultCard.style.display = 'none';
@@ -46,7 +48,7 @@ cameraInput.addEventListener('change', async function(e) {
       preview.src = capturedImageBase64;
       previewContainer.style.display = 'block';
       actions.style.display = 'flex';
-      statusDiv.innerHTML = '✨ Resit bersih sempurna & sedia diproses!';
+      statusDiv.innerHTML = '✨ Resit sedia! Boleh pusing atau terus proses.';
     } catch (err) {
       console.error("Ralat pemprosesan imej:", err);
       capturedImageBase64 = event.target.result;
@@ -59,12 +61,29 @@ cameraInput.addEventListener('change', async function(e) {
   reader.readAsDataURL(file);
 });
 
+// Fungsi Pusing Resit 90 darjah jika gambar melintang
+function rotateReceipt() {
+  if (!capturedImageBase64) return;
+  const img = new Image();
+  img.onload = () => {
+    const rCanvas = document.createElement('canvas');
+    rCanvas.width = img.height;
+    rCanvas.height = img.width;
+    const rCtx = rCanvas.getContext('2d');
+    rCtx.translate(rCanvas.width / 2, rCanvas.height / 2);
+    rCtx.rotate((90 * Math.PI) / 180);
+    rCtx.drawImage(img, -img.width / 2, -img.height / 2);
+    capturedImageBase64 = rCanvas.toDataURL('image/jpeg', 0.92);
+    preview.src = capturedImageBase64;
+  };
+  img.src = capturedImageBase64;
+}
+
 // Enjin Auto-Crop Presisi Tinggi, Edge-Trim & Pemutih Pinggiran
 function autoCropAndEnhance(imageSrc) {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
-      // 1. Skala analisa cepat untuk deteksi kertas resi
       const aW = 320;
       const aH = Math.round((img.height * aW) / img.width);
 
@@ -86,7 +105,6 @@ function autoCropAndEnhance(imageSrc) {
         sumTotal += lum;
       }
 
-      // Ambang Otsu untuk memisahkan meja dan kertas
       const totalPixels = aW * aH;
       let sumB = 0, wB = 0, maxVar = 0, bestThresh = 120;
       for (let t = 0; t < 256; t++) {
@@ -106,7 +124,6 @@ function autoCropAndEnhance(imageSrc) {
 
       const thresh = Math.max(80, Math.min(bestThresh, 205));
 
-      // 2. Unjuran Garisan Lebih Ketat (Abaikan pantulan meja)
       const rowCounts = new Int32Array(aH);
       const colCounts = new Int32Array(aW);
 
@@ -143,14 +160,12 @@ function autoCropAndEnhance(imageSrc) {
       if (detectedW > aW * 0.15 && detectedH > aH * 0.15) {
         const scaleX = img.width / aW;
         const scaleY = img.height / aH;
-        // Tanpa padding luar agar tidak memakan meja
         cropX = Math.max(0, minX * scaleX);
         cropY = Math.max(0, minY * scaleY);
         cropW = Math.min(img.width - cropX, detectedW * scaleX);
         cropH = Math.min(img.height - cropY, detectedH * scaleY);
       }
 
-      // 3. Kanvas Sementara Resolusi Tinggi
       const maxDim = 1500;
       let outW = Math.round(cropW);
       let outH = Math.round(cropH);
@@ -174,7 +189,6 @@ function autoCropAndEnhance(imageSrc) {
       const tImgData = tCtx.getImageData(0, 0, outW, outH);
       const tData = tImgData.data;
 
-      // 4. SMART EDGE-TRIMMER: Cukur habis kolom & baris tepi yang masih berisi meja
       const lumMap = new Uint8Array(outW * outH);
       for (let i = 0; i < outW * outH; i++) {
         const off = i * 4;
@@ -221,7 +235,6 @@ function autoCropAndEnhance(imageSrc) {
         else break;
       }
 
-      // 5. Kanvas Final Setelah Dicukur Rapi
       const finalW = Math.max(10, trimRight - trimLeft + 1);
       const finalH = Math.max(10, trimBot - trimTop + 1);
 
@@ -231,7 +244,6 @@ function autoCropAndEnhance(imageSrc) {
       const outCtx = outCanvas.getContext('2d');
       outCtx.drawImage(tempCanvas, trimLeft, trimTop, finalW, finalH, 0, 0, finalW, finalH);
 
-      // 6. Normalisasi Pencahayaan & Border Whitening (Pinggiran 2.5% diputihkan)
       const finalImgData = outCtx.getImageData(0, 0, finalW, finalH);
       const d = finalImgData.data;
 
@@ -281,7 +293,6 @@ function autoCropAndEnhance(imageSrc) {
       sCtx.drawImage(bgCanvas, 0, 0, finalW, finalH);
       const smoothData = sCtx.getImageData(0, 0, finalW, finalH).data;
 
-      // Batas margin pinggir untuk memastikan tidak ada sisa meja yang lolos
       const marginX = Math.floor(finalW * 0.025);
       const marginY = Math.floor(finalH * 0.025);
 
@@ -290,7 +301,6 @@ function autoCropAndEnhance(imageSrc) {
           const idx = (y * finalW + x) * 4;
           const curLum = 0.299 * d[idx] + 0.587 * d[idx + 1] + 0.114 * d[idx + 2];
 
-          // Jika ada sisa sudut meja di pinggiran terluar, langsung jadikan putih murni
           if (x < marginX || x > finalW - marginX || y < marginY || y > finalH - marginY) {
             if (curLum < thresh) {
               d[idx] = 255;
@@ -305,9 +315,9 @@ function autoCropAndEnhance(imageSrc) {
 
           let finalVal;
           if (normalized >= 190) {
-            finalVal = 255; // Latar kertas putih bersih
+            finalVal = 255;
           } else if (normalized <= 125) {
-            finalVal = normalized * 0.65; // Teks tulisan pekat & tajam
+            finalVal = normalized * 0.65;
           } else {
             finalVal = 81.25 + (normalized - 125) * (173.75 / 65);
           }
@@ -326,7 +336,7 @@ function autoCropAndEnhance(imageSrc) {
   });
 }
 
-// Menghasilkan Dokumen PDF Bersih
+// Jana PDF Berasaskan Imej Resit Bersih
 function createReceiptPdfBlob() {
   return new Promise((resolve) => {
     const { jsPDF } = window.jspdf;
@@ -358,24 +368,35 @@ function createReceiptPdfBlob() {
   });
 }
 
-// Simpan fail PDF
+// Pembantu Muat Turun Fail Blob ke Peranti
+function triggerBlobDownload(blob, filename) {
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  setTimeout(() => URL.revokeObjectURL(link.href), 1500);
+}
+
+// Muat turun PDF sahaja (tanpa AI)
 async function downloadPdfDirectly() {
   if (!capturedImageBase64) return;
   statusDiv.innerHTML = '<span class="loader"></span>Menjana fail PDF...';
   const blob = await createReceiptPdfBlob();
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = `resit_bersih_${Date.now()}.pdf`;
-  link.click();
-  statusDiv.innerHTML = '✅ PDF resit bersih berjaya disimpan!';
+  currentPdfBlob = blob;
+  const filename = `resit_bersih_${Date.now()}.pdf`;
+  triggerBlobDownload(blob, filename);
+  statusDiv.innerHTML = `✅ Fail <strong>${filename}</strong> berjaya disimpan di telefon!`;
 }
 
-// Kirim ke Gemini Cloud Run AI
+// Hantar ke Gemini AI & Muat Turun Fail PDF Automatik
 async function processReceipt() {
-  statusDiv.innerHTML = '<span class="loader"></span>Menjana dokumen PDF kemas...';
+  statusDiv.innerHTML = '<span class="loader"></span>Menjana fail PDF resit...';
   const pdfBlob = await createReceiptPdfBlob();
+  currentPdfBlob = pdfBlob;
 
-  statusDiv.innerHTML = '<span class="loader"></span>Gemini AI sedang membaca resit...';
+  statusDiv.innerHTML = '<span class="loader"></span>Gemini AI sedang mengekstrak data...';
 
   const formData = new FormData();
   formData.append('file', pdfBlob, 'receipt.pdf');
@@ -391,15 +412,38 @@ async function processReceipt() {
     }
 
     const data = await response.json();
+    currentExtractedData = data;
     renderResult(data);
-    statusDiv.innerHTML = '✅ Selesai diekstrak!';
+
+    // BINA NAMA FAIL PINTAR: Resit_NAMA_KEDAI_TARIKH.pdf
+    const cleanShop = (data.nama_kedai || 'Kedai').replace(/[^a-zA-Z0-9]/g, '_');
+    const cleanDate = (data.tarikh || '').replace(/[^a-zA-Z0-9]/g, '-');
+    const smartFilename = `Resit_${cleanShop}_${cleanDate || Date.now()}.pdf`;
+
+    // CETUSKAN MUAT TURUN PDF KE TELEFON SERTA-MERTA!
+    triggerBlobDownload(pdfBlob, smartFilename);
+
+    statusDiv.innerHTML = `✅ Selesai diekstrak & fail <strong>${smartFilename}</strong> berjaya dimuat turun ke telefon!`;
   } catch (err) {
     console.error(err);
     statusDiv.innerHTML = `<span style="color: red;">❌ Ralat: ${err.message}</span>`;
   }
 }
 
-// Tampilkan data hasil ekstrak
+// Butang Muat Turun Semula di Kad Keputusan
+function downloadCurrentReceiptPdf() {
+  if (!currentPdfBlob) {
+    downloadPdfDirectly();
+    return;
+  }
+  const cleanShop = (currentExtractedData?.nama_kedai || 'Kedai').replace(/[^a-zA-Z0-9]/g, '_');
+  const cleanDate = (currentExtractedData?.tarikh || '').replace(/[^a-zA-Z0-9]/g, '-');
+  const filename = `Resit_${cleanShop}_${cleanDate || Date.now()}.pdf`;
+  triggerBlobDownload(currentPdfBlob, filename);
+  statusDiv.innerHTML = `📥 Memuat turun fail <strong>${filename}</strong> semula...`;
+}
+
+// Paparkan jadual perbelanjaan
 function renderResult(data) {
   document.getElementById('resKedai').innerText = data.nama_kedai || 'Tidak dinyatakan';
   document.getElementById('resTarikh').innerText = data.tarikh || '-';
