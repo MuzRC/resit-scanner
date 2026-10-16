@@ -108,6 +108,20 @@
       border: 1px solid #ddd;
       object-fit: contain;
     }
+    .rotate-btn {
+      margin-top: 8px;
+      background: #eceff1;
+      border: 1px solid #cfd8dc;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #37474f;
+      cursor: pointer;
+    }
+    .rotate-btn:active {
+      background: #cfd8dc;
+    }
     .btn-group {
       display: flex;
       flex-direction: column;
@@ -132,12 +146,15 @@
     .btn-primary:active { background: #1b5e20; }
     .btn-secondary { background: #546e7a; color: #fff; }
     .btn-secondary:active { background: #37474f; }
+    .btn-download-pdf { background: #0277bd; color: #fff; margin-top: 14px; }
+    .btn-download-pdf:active { background: #01579b; }
     .status-msg {
       margin-top: 15px;
       font-size: 13px;
       text-align: center;
       font-weight: 600;
       color: #0277bd;
+      line-height: 1.4;
     }
     .loader {
       display: inline-block;
@@ -224,7 +241,7 @@
   <div class="header">
     <h1>
       📄 ResitAI Scanner
-      <span class="version-badge">v2.6</span>
+      <span class="version-badge">v2.7</span>
     </h1>
     <div class="creator-tag">
       Dibangunkan oleh: <strong>Musa Bin Sarudin</strong>
@@ -244,6 +261,9 @@
 
   <div id="preview-container">
     <img id="preview" alt="Pratonton Resit">
+    <div>
+      <button type="button" class="rotate-btn" onclick="rotateReceipt()">🔄 Pusing 90°</button>
+    </div>
   </div>
 
   <div class="btn-group" id="actions" style="display: none;">
@@ -287,18 +307,23 @@
       <span id="resTotal">RM 0.00</span>
     </div>
 
-    <button style="margin-top: 10px; background: none; border: none; color: #1976d2; font-size: 11px; cursor: pointer; text-decoration: underline;" onclick="toggleRawJson()">
+    <!-- Butang Muat Turun PDF yang jelas di bawah hasil ekstrak -->
+    <button class="btn btn-download-pdf" onclick="downloadCurrentReceiptPdf()">
+      📥 Muat Turun PDF Resit Ini
+    </button>
+
+    <button style="margin-top: 12px; background: none; border: none; color: #1976d2; font-size: 11px; cursor: pointer; text-decoration: underline;" onclick="toggleRawJson()">
       Lihat Format Mentah (JSON)
     </button>
     <pre id="rawJson"></pre>
   </div>
 
   <div class="app-footer">
-    ResitAI Scanner • Versi 2.6<br>
+    ResitAI Scanner • Versi 2.7<br>
     Hak Cipta &copy; 2026 <strong>Musa Bin Sarudin</strong>. Hak Cipta Terpelihara.
   </div>
 </div>
 
-<script src="app.js?v=2.6"></script>
+<script src="app.js?v=2.7"></script>
 </body>
 </html>
