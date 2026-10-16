@@ -44,32 +44,11 @@
       color: #666;
       margin-top: 4px;
     }
-    .config-box {
-      background: #f8f9fa;
-      border: 1px dashed #cfd8dc;
-      padding: 12px;
-      border-radius: 10px;
-      margin-bottom: 18px;
-      font-size: 12px;
-    }
-    .config-box label {
-      font-weight: 600;
-      color: #455a64;
-      display: block;
-      margin-bottom: 4px;
-    }
-    .config-box input {
-      width: 100%;
-      padding: 8px 10px;
-      border: 1px solid #ccd0d5;
-      border-radius: 6px;
-      font-size: 12px;
-    }
     .upload-zone {
       border: 2px dashed #90caf9;
       background: #f4f9ff;
       border-radius: 12px;
-      padding: 24px 16px;
+      padding: 28px 16px;
       text-align: center;
       cursor: pointer;
       transition: all 0.2s;
@@ -85,7 +64,7 @@
       margin-bottom: 8px;
     }
     .upload-zone p {
-      font-size: 14px;
+      font-size: 15px;
       font-weight: 600;
       color: #1976d2;
     }
@@ -211,12 +190,7 @@
 <div class="app-container">
   <div class="header">
     <h1>📄 ResitAI Scanner</h1>
-    <p>Tangkap gambar resit, tukar ke PDF & ekstrak teks AI</p>
-  </div>
-
-  <div class="config-box">
-    <label for="backendUrl">Pautan Backend Cloud Run (API):</label>
-    <input type="text" id="backendUrl" placeholder="https://resit-api-xxxx-as.a.run.app">
+    <p>Imbas resit, tukar PDF & ekstrak perbelanjaan AI</p>
   </div>
 
   <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;">
@@ -226,7 +200,7 @@
       <path d="M4 4h3l2-2h6l2 2h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm8 3a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6z"/>
     </svg>
     <p>Ambil Gambar Resit</p>
-    <span>Kamera telefon atau pilih fail galeri</span>
+    <span>Buka kamera atau pilih dari galeri</span>
   </div>
 
   <div id="preview-container">
@@ -238,7 +212,7 @@
       ⚡ Jana PDF & Ekstrak Data AI
     </button>
     <button class="btn btn-secondary" onclick="downloadPdfDirectly()">
-      💾 Muat Turun Fail PDF Sahaja
+      💾 Simpan Salinan PDF Sahaja
     </button>
   </div>
 
@@ -247,7 +221,7 @@
   <div class="result-card" id="resultCard">
     <h3>Hasil Ekstrak AI (Gemini)</h3>
     <div class="info-row">
-      <span class="info-label">Nama Kedai:</span>
+      <span class="info-label">Kedai / Premis:</span>
       <span class="info-val" id="resKedai">-</span>
     </div>
     <div class="info-row">
@@ -262,7 +236,7 @@
     <table class="items-table" id="itemsTable">
       <thead>
         <tr>
-          <th>Barang / Item</th>
+          <th>Senarai Barang</th>
           <th style="text-align: right;">Harga (RM)</th>
         </tr>
       </thead>
