@@ -1,11 +1,21 @@
-// Pengesan automatik kemas kini versi baharu
-let refreshing = false;
-navigator.serviceWorker.addEventListener('controllerchange', () => {
-  if (!refreshing) {
-    refreshing = true;
-    window.location.reload();
-  }
-});
+// Mekanisma pengesan kemas kini automatik untuk pengguna
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').then((reg) => {
+      // Setiap kali app dibuka, paksa telefon semak sama ada fail sw.js berubah di GitHub
+      reg.update();
+    });
+  });
+
+  // Bila Service Worker baru berjaya dipasang, muat semula skrin secara automatik
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!refreshing) {
+      refreshing = true;
+      window.location.reload();
+    }
+  });
+}
 
 // 1. Pendaftaran Service Worker untuk PWA
 if ('serviceWorker' in navigator) {
