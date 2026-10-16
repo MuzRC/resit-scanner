@@ -38,11 +38,23 @@
       align-items: center;
       justify-content: center;
       gap: 8px;
+      flex-wrap: wrap;
+    }
+    /* Lencana Nombor Versi Bergaya */
+    .version-badge {
+      font-size: 11px;
+      background: #e3f2fd;
+      color: #1565c0;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-weight: 700;
+      border: 1px solid #90caf9;
+      letter-spacing: 0.5px;
     }
     .header p {
       font-size: 13px;
       color: #666;
-      margin-top: 4px;
+      margin-top: 6px;
     }
     .upload-zone {
       border: 2px dashed #90caf9;
@@ -183,13 +195,22 @@
       margin-top: 10px;
       display: none;
     }
+    .app-footer {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 11px;
+      color: #90a4ae;
+    }
   </style>
 </head>
 <body>
 
 <div class="app-container">
   <div class="header">
-    <h1>📄 ResitAI Scanner</h1>
+    <h1>
+      📄 ResitAI Scanner
+      <span class="version-badge">v2.1</span>
+    </h1>
     <p>Imbas resit, tukar PDF & ekstrak perbelanjaan AI</p>
   </div>
 
@@ -252,6 +273,10 @@
       Lihat Format Mentah (JSON)
     </button>
     <pre id="rawJson"></pre>
+  </div>
+
+  <div class="app-footer">
+    ResitAI Scanner • Versi 2.1
   </div>
 </div>
 
