@@ -19,64 +19,123 @@ if ('serviceWorker' in navigator) {
 const BACKEND_URL = "https://resit-api-399824306056.asia-southeast1.run.app/extract";
 
 const cameraInput = document.getElementById('cameraInput');
-const preview = document.getElementById('preview');
-const previewContainer = document.getElementById('preview-container');
-const actions = document.getElementById('actions');
+const galleryInput = document.getElementById('galleryInput');
+const receiptsGrid = document.getElementById('receiptsGrid');
+const actionsGroup = document.getElementById('actionsGroup');
+const receiptCount = document.getElementById('receiptCount');
 const statusDiv = document.getElementById('status');
-const resultCard = document.getElementById('resultCard');
-const rawJson = document.getElementById('rawJson');
+const grandTotalCard = document.getElementById('grandTotalCard');
+const grandTotalAmount = document.getElementById('grandTotalAmount');
+const grandTotalCount = document.getElementById('grandTotalCount');
+const resultsContainer = document.getElementById('resultsContainer');
 
-let capturedImageBase64 = null;
-let currentPdfBlob = null;
-let currentExtractedData = null;
+// Senarai simpanan resit sebelum dan selepas diproses
+let receiptsQueue = [];
 
-// Tangkap gambar dari kamera atau galeri
-cameraInput.addEventListener('change', async function(e) {
-  const file = e.target.files[0];
-  if (!file) return;
+// Pengendali input kamera & galeri
+cameraInput.addEventListener('change', (e) => handleImageFiles(e.target.files));
+galleryInput.addEventListener('change', (e) => handleImageFiles(e.target.files));
 
-  statusDiv.innerHTML = '<span class="loader"></span>Mencukur meja & membersihkan tepi resit...';
-  previewContainer.style.display = 'none';
-  actions.style.display = 'none';
-  resultCard.style.display = 'none';
+async function handleImageFiles(files) {
+  if (!files || files.length === 0) return;
 
-  const reader = new FileReader();
-  reader.onload = async function(event) {
+  statusDiv.innerHTML = '<span class="loader"></span>Mencukur meja & membersihkan gambar...';
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    const base64Raw = await readFileAsBase64(file);
     try {
-      const croppedImage = await autoCropAndEnhance(event.target.result);
-      capturedImageBase64 = croppedImage;
-      preview.src = capturedImageBase64;
-      previewContainer.style.display = 'block';
-      actions.style.display = 'flex';
-      statusDiv.innerHTML = '✨ Resit sedia! Boleh pusing atau terus proses.';
+      const enhanced = await autoCropAndEnhance(base64Raw);
+      receiptsQueue.push({
+        id: Date.now() + Math.random(),
+        base64: enhanced,
+        pdfBlob: null,
+        data: null
+      });
     } catch (err) {
-      console.error("Ralat pemprosesan imej:", err);
-      capturedImageBase64 = event.target.result;
-      preview.src = capturedImageBase64;
-      previewContainer.style.display = 'block';
-      actions.style.display = 'flex';
-      statusDiv.innerHTML = 'Resit sedia untuk diproses.';
+      console.error("Ralat pembersihan:", err);
+      receiptsQueue.push({
+        id: Date.now() + Math.random(),
+        base64: base64Raw,
+        pdfBlob: null,
+        data: null
+      });
     }
-  };
-  reader.readAsDataURL(file);
-});
+  }
 
-// Fungsi Pusing Resit 90 darjah jika gambar melintang
-function rotateReceipt() {
-  if (!capturedImageBase64) return;
+  // Reset input supaya boleh pilih gambar yang sama semula jika perlu
+  cameraInput.value = '';
+  galleryInput.value = '';
+
+  renderReceiptsGrid();
+  statusDiv.innerHTML = `✨ ${receiptsQueue.length} resit sedia! Boleh tambah lagi atau terus proses.`;
+}
+
+function readFileAsBase64(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve(e.target.result);
+    reader.readAsDataURL(file);
+  });
+}
+
+// Paparkan gambar resit dalam bentuk grid kad kecil
+function renderReceiptsGrid() {
+  receiptsGrid.innerHTML = '';
+  if (receiptsQueue.length === 0) {
+    actionsGroup.style.display = 'none';
+    return;
+  }
+
+  actionsGroup.style.display = 'flex';
+  receiptCount.innerText = receiptsQueue.length;
+
+  receiptsQueue.forEach((item, index) => {
+    const card = document.createElement('div');
+    card.className = 'receipt-thumb-card';
+    card.innerHTML = `
+      <button type="button" class="delete-thumb-btn" onclick="removeReceipt(${index})">✕</button>
+      <img src="${item.base64}" alt="Resit #${index + 1}">
+      <button type="button" class="thumb-rotate-btn" onclick="rotateThumb(${index})">🔄 Pusing 90°</button>
+    `;
+    receiptsGrid.appendChild(card);
+  });
+}
+
+// Padam satu resit dari giliran
+function removeReceipt(index) {
+  receiptsQueue.splice(index, 1);
+  renderReceiptsGrid();
+  if (receiptsQueue.length === 0) {
+    statusDiv.innerHTML = '';
+  }
+}
+
+// Pusingkan satu resit jika kedudukan senget
+function rotateThumb(index) {
+  const item = receiptsQueue[index];
   const img = new Image();
   img.onload = () => {
-    const rCanvas = document.createElement('canvas');
-    rCanvas.width = img.height;
-    rCanvas.height = img.width;
-    const rCtx = rCanvas.getContext('2d');
-    rCtx.translate(rCanvas.width / 2, rCanvas.height / 2);
-    rCtx.rotate((90 * Math.PI) / 180);
-    rCtx.drawImage(img, -img.width / 2, -img.height / 2);
-    capturedImageBase64 = rCanvas.toDataURL('image/jpeg', 0.92);
-    preview.src = capturedImageBase64;
+    const canvas = document.createElement('canvas');
+    canvas.width = img.height;
+    canvas.height = img.width;
+    const ctx = canvas.getContext('2d');
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.rotate((90 * Math.PI) / 180);
+    ctx.drawImage(img, -img.width / 2, -img.height / 2);
+    item.base64 = canvas.toDataURL('image/jpeg', 0.92);
+    renderReceiptsGrid();
   };
-  img.src = capturedImageBase64;
+  img.src = item.base64;
+}
+
+// Kosongkan semua senarai
+function clearAllReceipts() {
+  receiptsQueue = [];
+  renderReceiptsGrid();
+  grandTotalCard.style.display = 'none';
+  resultsContainer.innerHTML = '';
+  statusDiv.innerHTML = 'Senarai telah dikosongkan.';
 }
 
 // Enjin Auto-Crop Presisi Tinggi, Edge-Trim & Pemutih Pinggiran
@@ -123,7 +182,6 @@ function autoCropAndEnhance(imageSrc) {
       }
 
       const thresh = Math.max(80, Math.min(bestThresh, 205));
-
       const rowCounts = new Int32Array(aH);
       const colCounts = new Int32Array(aW);
 
@@ -186,9 +244,7 @@ function autoCropAndEnhance(imageSrc) {
       const tCtx = tempCanvas.getContext('2d');
       tCtx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, outW, outH);
 
-      const tImgData = tCtx.getImageData(0, 0, outW, outH);
-      const tData = tImgData.data;
-
+      const tData = tCtx.getImageData(0, 0, outW, outH).data;
       const lumMap = new Uint8Array(outW * outH);
       for (let i = 0; i < outW * outH; i++) {
         const off = i * 4;
@@ -197,42 +253,30 @@ function autoCropAndEnhance(imageSrc) {
 
       let trimLeft = 0;
       while (trimLeft < Math.floor(outW * 0.20)) {
-        let darkPixels = 0;
-        for (let y = 0; y < outH; y++) {
-          if (lumMap[y * outW + trimLeft] < thresh) darkPixels++;
-        }
-        if (darkPixels / outH > 0.30) trimLeft++;
-        else break;
+        let dark = 0;
+        for (let y = 0; y < outH; y++) if (lumMap[y * outW + trimLeft] < thresh) dark++;
+        if (dark / outH > 0.30) trimLeft++; else break;
       }
 
       let trimRight = outW - 1;
       while (trimRight > Math.floor(outW * 0.80)) {
-        let darkPixels = 0;
-        for (let y = 0; y < outH; y++) {
-          if (lumMap[y * outW + trimRight] < thresh) darkPixels++;
-        }
-        if (darkPixels / outH > 0.30) trimRight--;
-        else break;
+        let dark = 0;
+        for (let y = 0; y < outH; y++) if (lumMap[y * outW + trimRight] < thresh) dark++;
+        if (dark / outH > 0.30) trimRight--; else break;
       }
 
       let trimTop = 0;
       while (trimTop < Math.floor(outH * 0.20)) {
-        let darkPixels = 0;
-        for (let x = 0; x < outW; x++) {
-          if (lumMap[trimTop * outW + x] < thresh) darkPixels++;
-        }
-        if (darkPixels / outW > 0.30) trimTop++;
-        else break;
+        let dark = 0;
+        for (let x = 0; x < outW; x++) if (lumMap[trimTop * outW + x] < thresh) dark++;
+        if (dark / outW > 0.30) trimTop++; else break;
       }
 
       let trimBot = outH - 1;
       while (trimBot > Math.floor(outH * 0.80)) {
-        let darkPixels = 0;
-        for (let x = 0; x < outW; x++) {
-          if (lumMap[trimBot * outW + x] < thresh) darkPixels++;
-        }
-        if (darkPixels / outW > 0.30) trimBot--;
-        else break;
+        let dark = 0;
+        for (let x = 0; x < outW; x++) if (lumMap[trimBot * outW + x] < thresh) dark++;
+        if (dark / outW > 0.30) trimBot--; else break;
       }
 
       const finalW = Math.max(10, trimRight - trimLeft + 1);
@@ -336,13 +380,13 @@ function autoCropAndEnhance(imageSrc) {
   });
 }
 
-// Jana PDF Berasaskan Imej Resit Bersih
-function createReceiptPdfBlob() {
+// Jana fail PDF daripada Base64
+function generatePdfBlob(base64Image) {
   return new Promise((resolve) => {
     const { jsPDF } = window.jspdf;
     const img = new Image();
-    img.src = capturedImageBase64;
-    img.onload = function() {
+    img.src = base64Image;
+    img.onload = () => {
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
@@ -368,7 +412,6 @@ function createReceiptPdfBlob() {
   });
 }
 
-// Pembantu Muat Turun Fail Blob ke Peranti
 function triggerBlobDownload(blob, filename) {
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
@@ -379,100 +422,139 @@ function triggerBlobDownload(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(link.href), 1500);
 }
 
-// Muat turun PDF sahaja (tanpa AI)
-async function downloadPdfDirectly() {
-  if (!capturedImageBase64) return;
-  statusDiv.innerHTML = '<span class="loader"></span>Menjana fail PDF...';
-  const blob = await createReceiptPdfBlob();
-  currentPdfBlob = blob;
-  const filename = `resit_bersih_${Date.now()}.pdf`;
-  triggerBlobDownload(blob, filename);
-  statusDiv.innerHTML = `✅ Fail <strong>${filename}</strong> berjaya disimpan di telefon!`;
-}
+// PROSES SEMUA RESIT SECARA GILIRAN (LOOP)
+async function processAllReceipts() {
+  if (receiptsQueue.length === 0) return;
 
-// Hantar ke Gemini AI & Muat Turun Fail PDF Automatik
-async function processReceipt() {
-  statusDiv.innerHTML = '<span class="loader"></span>Menjana fail PDF resit...';
-  const pdfBlob = await createReceiptPdfBlob();
-  currentPdfBlob = pdfBlob;
+  const processBtn = document.getElementById('processAllBtn');
+  processBtn.disabled = true;
+  resultsContainer.innerHTML = '';
+  grandTotalCard.style.display = 'none';
 
-  statusDiv.innerHTML = '<span class="loader"></span>Gemini AI sedang mengekstrak data...';
+  let grandTotal = 0;
+  let successCount = 0;
 
-  const formData = new FormData();
-  formData.append('file', pdfBlob, 'receipt.pdf');
+  for (let i = 0; i < receiptsQueue.length; i++) {
+    const item = receiptsQueue[i];
+    statusDiv.innerHTML = `<span class="loader"></span>Memproses resit [${i + 1}/${receiptsQueue.length}]...`;
 
-  try {
-    const response = await fetch(BACKEND_URL, {
-      method: 'POST',
-      body: formData
-    });
+    try {
+      // 1. Jana PDF bagi resit ini
+      const pdfBlob = await generatePdfBlob(item.base64);
+      item.pdfBlob = pdfBlob;
 
-    if (!response.ok) {
-      throw new Error(`Ralat pelayan: ${response.status}`);
+      // 2. Hantar ke API Cloud Run
+      const formData = new FormData();
+      formData.append('file', pdfBlob, 'receipt.pdf');
+
+      const response = await fetch(BACKEND_URL, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) throw new Error(`Status ${response.status}`);
+
+      const data = await response.json();
+      item.data = data;
+
+      // Kira jumlah
+      const totalNum = parseFloat(data.jumlah_keseluruhan || 0);
+      grandTotal += totalNum;
+      successCount++;
+
+      // Paparkan kad hasil resit ini
+      appendReceiptResultCard(item, i + 1);
+
+    } catch (err) {
+      console.error(`Gagal pada resit #${i + 1}:`, err);
+      appendErrorCard(i + 1, err.message);
     }
-
-    const data = await response.json();
-    currentExtractedData = data;
-    renderResult(data);
-
-    // BINA NAMA FAIL PINTAR: Resit_NAMA_KEDAI_TARIKH.pdf
-    const cleanShop = (data.nama_kedai || 'Kedai').replace(/[^a-zA-Z0-9]/g, '_');
-    const cleanDate = (data.tarikh || '').replace(/[^a-zA-Z0-9]/g, '-');
-    const smartFilename = `Resit_${cleanShop}_${cleanDate || Date.now()}.pdf`;
-
-    // CETUSKAN MUAT TURUN PDF KE TELEFON SERTA-MERTA!
-    triggerBlobDownload(pdfBlob, smartFilename);
-
-    statusDiv.innerHTML = `✅ Selesai diekstrak & fail <strong>${smartFilename}</strong> berjaya dimuat turun ke telefon!`;
-  } catch (err) {
-    console.error(err);
-    statusDiv.innerHTML = `<span style="color: red;">❌ Ralat: ${err.message}</span>`;
   }
+
+  processBtn.disabled = false;
+  statusDiv.innerHTML = `✅ Selesai! Sebanyak ${successCount} daripada ${receiptsQueue.length} resit berjaya diekstrak.`;
+
+  // Paparkan Grand Total
+  grandTotalAmount.innerText = `RM ${grandTotal.toFixed(2)}`;
+  grandTotalCount.innerText = `${successCount} Resit Berjaya`;
+  grandTotalCard.style.display = 'flex';
 }
 
-// Butang Muat Turun Semula di Kad Keputusan
-function downloadCurrentReceiptPdf() {
-  if (!currentPdfBlob) {
-    downloadPdfDirectly();
-    return;
-  }
-  const cleanShop = (currentExtractedData?.nama_kedai || 'Kedai').replace(/[^a-zA-Z0-9]/g, '_');
-  const cleanDate = (currentExtractedData?.tarikh || '').replace(/[^a-zA-Z0-9]/g, '-');
-  const filename = `Resit_${cleanShop}_${cleanDate || Date.now()}.pdf`;
-  triggerBlobDownload(currentPdfBlob, filename);
-  statusDiv.innerHTML = `📥 Memuat turun fail <strong>${filename}</strong> semula...`;
-}
+// Tambah Kad Paparan Data bagi Setiap Resit
+function appendReceiptResultCard(item, index) {
+  const data = item.data;
+  const card = document.createElement('div');
+  card.className = 'receipt-result-card';
 
-// Paparkan jadual perbelanjaan
-function renderResult(data) {
-  document.getElementById('resKedai').innerText = data.nama_kedai || 'Tidak dinyatakan';
-  document.getElementById('resTarikh').innerText = data.tarikh || '-';
-  document.getElementById('resNo').innerText = data.no_resit || '-';
-
-  const totalNum = parseFloat(data.jumlah_keseluruhan || 0).toFixed(2);
-  document.getElementById('resTotal').innerText = `RM ${totalNum}`;
-
-  const tbody = document.getElementById('itemsBody');
-  tbody.innerHTML = '';
-
+  let itemsRows = '';
   if (Array.isArray(data.senarai_barang) && data.senarai_barang.length > 0) {
-    data.senarai_barang.forEach(item => {
-      const tr = document.createElement('tr');
-      const hargaStr = parseFloat(item.harga || 0).toFixed(2);
-      tr.innerHTML = `
-        <td>${item.nama || item.item || '-'}</td>
-        <td class="num">${hargaStr}</td>
+    data.senarai_barang.forEach(it => {
+      const hargaStr = parseFloat(it.harga || 0).toFixed(2);
+      itemsRows += `
+        <tr>
+          <td>${it.nama || it.item || '-'}</td>
+          <td class="num">${hargaStr}</td>
+        </tr>
       `;
-      tbody.appendChild(tr);
     });
   } else {
-    tbody.innerHTML = '<tr><td colspan="2" style="text-align:center; color:#999;">Tiada senarai item dikesan</td></tr>';
+    itemsRows = '<tr><td colspan="2" style="text-align:center; color:#999;">Tiada senarai item dikesan</td></tr>';
   }
 
-  rawJson.innerText = JSON.stringify(data, null, 2);
-  resultCard.style.display = 'block';
+  const cleanShop = (data.nama_kedai || `Kedai_${index}`).replace(/[^a-zA-Z0-9]/g, '_');
+  const cleanDate = (data.tarikh || '').replace(/[^a-zA-Z0-9]/g, '-');
+  const filename = `Resit_${cleanShop}_${cleanDate || Date.now()}.pdf`;
+
+  card.innerHTML = `
+    <div class="receipt-result-header">
+      <span class="receipt-result-title">Resit #${index}: ${data.nama_kedai || 'Tidak dinyatakan'}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">Tarikh:</span>
+      <span class="info-val">${data.tarikh || '-'}</span>
+    </div>
+    <div class="info-row">
+      <span class="info-label">No. Resit:</span>
+      <span class="info-val">${data.no_resit || '-'}</span>
+    </div>
+
+    <table class="items-table">
+      <thead>
+        <tr>
+          <th>Senarai Barang</th>
+          <th style="text-align: right;">Harga (RM)</th>
+        </tr>
+      </thead>
+      <tbody>${itemsRows}</tbody>
+    </table>
+
+    <div class="total-highlight">
+      <span>JUMLAH:</span>
+      <span>RM ${parseFloat(data.jumlah_keseluruhan || 0).toFixed(2)}</span>
+    </div>
+
+    <button class="btn btn-download-pdf" id="dlBtn_${index}">
+      📥 Muat Turun PDF Resit #${index}
+    </button>
+  `;
+
+  resultsContainer.appendChild(card);
+
+  // Pasang butang muat turun PDF resit ini
+  document.getElementById(`dlBtn_${index}`).addEventListener('click', () => {
+    triggerBlobDownload(item.pdfBlob, filename);
+  });
 }
 
-function toggleRawJson() {
-  rawJson.style.display = rawJson.style.display === 'block' ? 'none' : 'block';
+function appendErrorCard(index, errorMsg) {
+  const card = document.createElement('div');
+  card.className = 'receipt-result-card';
+  card.style.borderColor = '#ef5350';
+  card.innerHTML = `
+    <div class="receipt-result-header">
+      <span class="receipt-result-title" style="color: #c62828;">Resit #${index}: Gagal Diekstrak</span>
+    </div>
+    <p style="font-size: 12px; color: #d32f2f;">Ralat: ${errorMsg}</p>
+  `;
+  resultsContainer.appendChild(card);
 }
