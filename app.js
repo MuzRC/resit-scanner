@@ -1,4 +1,4 @@
-// 1. Register Service Worker untuk PWA
+// 1. Register Service Worker untuk fungsi PWA
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js')
@@ -7,6 +7,9 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+// Pautan Backend Cloud Run yang sudah ditanam mati
+const BACKEND_URL = "https://resit-api-399824306056.asia-southeast1.run.app/extract";
+
 const cameraInput = document.getElementById('cameraInput');
 const preview = document.getElementById('preview');
 const previewContainer = document.getElementById('preview-container');
@@ -14,20 +17,10 @@ const actions = document.getElementById('actions');
 const statusDiv = document.getElementById('status');
 const resultCard = document.getElementById('resultCard');
 const rawJson = document.getElementById('rawJson');
-const backendUrlInput = document.getElementById('backendUrl');
-
-// Simpan url backend ke localStorage supaya tak hilang bila buka balik
-if (localStorage.getItem('resit_backend_url')) {
-  backendUrlInput.value = localStorage.getItem('resit_backend_url');
-}
-backendUrlInput.addEventListener('change', () => {
-  localStorage.setItem('resit_backend_url', backendUrlInput.value.trim());
-});
 
 let capturedImageBase64 = null;
-let generatedPdfBlob = null;
 
-// Tangkap dan paparkan imej resit
+// Tangkap imej dari kamera atau galeri telefon
 cameraInput.addEventListener('change', function(e) {
   const file = e.target.files[0];
   if (!file) return;
@@ -44,20 +37,18 @@ cameraInput.addEventListener('change', function(e) {
   reader.readAsDataURL(file);
 });
 
-// Fungsi pembantu jana PDF guna jsPDF
+// Pembantu jana PDF di peranti telefon guna jsPDF
 function createReceiptPdfBlob() {
   return new Promise((resolve) => {
     const { jsPDF } = window.jspdf;
     const img = new Image();
     img.src = capturedImageBase64;
     img.onload = function() {
-      // Orientasi dokumen A4
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
 
-      // Kira nisbah aspek imej
-      const imgWidth = pageWidth - 20; // Margin 10mm kiri kanan
+      const imgWidth = pageWidth - 20;
       const imgHeight = (img.height * imgWidth) / img.width;
 
       pdf.addImage(img, 'JPEG', 10, 10, imgWidth, Math.min(imgHeight, pageHeight - 20));
@@ -67,56 +58,48 @@ function createReceiptPdfBlob() {
   });
 }
 
-// Muat turun PDF secara terus
+// Muat turun fail PDF sahaja ke galeri/dokumen telefon
 async function downloadPdfDirectly() {
   if (!capturedImageBase64) return;
-  statusDiv.innerHTML = '<span class="loader"></span>Menjana PDF...';
+  statusDiv.innerHTML = '<span class="loader"></span>Menjana fail PDF...';
   const blob = await createReceiptPdfBlob();
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
   link.download = `resit_${Date.now()}.pdf`;
   link.click();
-  statusDiv.innerHTML = '✅ PDF berjaya dimuat turun!';
+  statusDiv.innerHTML = '✅ PDF berjaya disimpan di telefon!';
 }
 
-// Hantar PDF ke Backend AI untuk ekstraksi data
+// Jana PDF & Hantar terus ke Cloud Run AI
 async function processReceipt() {
-  const backendUrl = backendUrlInput.value.trim();
-  if (!backendUrl) {
-    alert('Sila masukkan URL backend Cloud Run anda di ruangan atas terlebih dahulu!');
-    backendUrlInput.focus();
-    return;
-  }
-
-  statusDiv.innerHTML = '<span class="loader"></span>Menjana fail PDF di telefon...';
+  statusDiv.innerHTML = '<span class="loader"></span>Menjana dokumen PDF...';
   const pdfBlob = await createReceiptPdfBlob();
 
-  statusDiv.innerHTML = '<span class="loader"></span>Menghantar ke Google Gemini AI...';
+  statusDiv.innerHTML = '<span class="loader"></span>Gemini AI sedang membaca resit...';
 
   const formData = new FormData();
   formData.append('file', pdfBlob, 'receipt.pdf');
 
   try {
-    const endpoint = backendUrl.endsWith('/') ? `${backendUrl}extract` : `${backendUrl}/extract`;
-    const response = await fetch(endpoint, {
+    const response = await fetch(BACKEND_URL, {
       method: 'POST',
       body: formData
     });
 
     if (!response.ok) {
-      throw new Error(`Ralat pelayan: ${response.status} ${response.statusText}`);
+      throw new Error(`Ralat pelayan: ${response.status}`);
     }
 
     const data = await response.json();
     renderResult(data);
-    statusDiv.innerHTML = '✅ Ekstraksi AI Selesai!';
+    statusDiv.innerHTML = '✅ Selesai diekstrak!';
   } catch (err) {
     console.error(err);
     statusDiv.innerHTML = `<span style="color: red;">❌ Ralat: ${err.message}</span>`;
   }
 }
 
-// Paparkan data JSON ke dalam kad keputusan
+// Paparkan data ke jadual
 function renderResult(data) {
   document.getElementById('resKedai').innerText = data.nama_kedai || 'Tidak dinyatakan';
   document.getElementById('resTarikh').innerText = data.tarikh || '-';
