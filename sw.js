@@ -1,3 +1,12 @@
+// Pengesan automatik kemas kini versi baharu
+let refreshing = false;
+navigator.serviceWorker.addEventListener('controllerchange', () => {
+  if (!refreshing) {
+    refreshing = true;
+    window.location.reload();
+  }
+});
+
 const CACHE_NAME = 'resit-ai-cache-v2.2';
 const ASSETS_TO_CACHE = [
   './',
